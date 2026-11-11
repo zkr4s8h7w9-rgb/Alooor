@@ -65,6 +65,7 @@ button.p{background:var(--acc);color:#fff}
 .gm em{font-style:normal;font-weight:700;min-width:52px}.gm small{margin-left:auto;color:var(--mut);font-size:12px}
 #cfg{background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:10px}
 #cfg summary{font-weight:600;cursor:pointer}
+#cfg select{width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif}
 #cfg input{width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif}
 </style>
 </head>
@@ -72,7 +73,8 @@ button.p{background:var(--acc);color:#fff}
 <main>
 <h1>♞ Revisione Scacchi AI</h1>
 <details id="cfg"><summary>⚙️ Impostazioni AI</summary>
-<p class="nt">Per i commenti e i consigli AI serve una chiave API Anthropic (console.anthropic.com). Resta salvata solo su questo dispositivo. Senza chiave l’app funziona con analisi Stockfish e commenti base.</p>
+<select id="prov"><option value="anthropic">Anthropic (a pagamento)</option><option value="gemini">Google Gemini (gratis)</option></select>
+<p class="nt" id="kh"></p>
 <input id="key" type="password" placeholder="Chiave API (sk-ant-…)" autocomplete="off">
 <input id="mdl" type="text" placeholder="Modello" autocomplete="off">
 <div class="row"><button id="sv">Salva</button></div>
@@ -102,18 +104,35 @@ $("#ex").onclick=()=>{$("#pgn").value=EX};
 const st=t=>$("#st").textContent=t;
 
 const LS={g:k=>{try{return localStorage.getItem(k)||""}catch(e){return ""}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
-$("#key").value=LS.g("sc_key");$("#mdl").value=LS.g("sc_mdl")||"claude-haiku-5-5";
-$("#sv").onclick=()=>{LS.s("sc_key",$("#key").value.trim());LS.s("sc_mdl",$("#mdl").value.trim()||"claude-haiku-5-5");st("Impostazioni salvate.");$("#cfg").open=false};
+const DEF={anthropic:"claude-haiku-5-5",gemini:"gemini-2.5-flash-lite"};
+const KH={anthropic:"Chiave su console.anthropic.com (a pagamento). Resta salvata solo su questo dispositivo.",gemini:"Chiave gratuita su aistudio.google.com → Get API key. Piano gratis con limiti di richieste. Resta salvata solo su questo dispositivo."};
+const getKey=p=>LS.g("sc_key_"+p)||(p==="anthropic"?LS.g("sc_key"):"");
+const getMdl=p=>LS.g("sc_mdl_"+p)||(p==="anthropic"?LS.g("sc_mdl"):"")||DEF[p];
+function loadCfg(){const p=$("#prov").value;$("#key").value=getKey(p);$("#mdl").value=getMdl(p);$("#kh").textContent=KH[p]+" Senza chiave l’app usa Stockfish con commenti automatici gratuiti."}
+$("#prov").value=LS.g("sc_prov")||"anthropic";$("#prov").onchange=loadCfg;loadCfg();
+$("#sv").onclick=()=>{const p=$("#prov").value;LS.s("sc_prov",p);LS.s("sc_key_"+p,$("#key").value.trim());LS.s("sc_mdl_"+p,$("#mdl").value.trim()||DEF[p]);st("Impostazioni salvate.");$("#cfg").open=false};
 function getSample(){
-  const key=LS.g("sc_key");if(!key)return null;
+  const p=LS.g("sc_prov")||"anthropic",key=getKey(p);
+  if(!key)return null;
+  const model=getMdl(p);
+  const req=prompt=>p==="gemini"
+    ?fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent",{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json"}})})
+    :fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:2000,messages:[{role:"user",content:prompt}]})});
   return{json:async prompt=>{
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:LS.g("sc_mdl")||"claude-haiku-5-5",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
-    if(!r.ok){const e=new Error("API "+r.status);if(r.status===401||r.status===403)e.code="not_granted";st("Errore API ("+r.status+"): controlla chiave e modello.");throw e}
+    let r;
+    for(let t=0;t<3;t++){
+      r=await req(prompt);
+      if(r.status!==429)break;
+      st("Limite di richieste raggiunto, riprovo tra 20 secondi…");await new Promise(x=>setTimeout(x,20000));
+    }
+    if(!r.ok){const e=new Error("API "+r.status);if(r.status===401||r.status===403||r.status===400)e.code="not_granted";st("Errore API ("+r.status+"): controlla chiave e modello.");throw e}
     const d=await r.json();
-    const t=(d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json|```/g,"").trim();
+    const t=(p==="gemini"?((d.candidates||[])[0]?.content?.parts||[]).map(x=>x.text||"").join(""):(d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("")).replace(/```json|```/g,"").trim();
     return JSON.parse(t);
   }};
 }
+const AND=/Android/i.test(navigator.userAgent);
+const lh=path=>AND?"intent://lichess.org"+path+"#Intent;scheme=https;package=org.lichess.mobileV2;S.browser_fallback_url="+encodeURIComponent("https://lichess.org"+path)+";end":"https://lichess.org"+path;
 const tick=()=>new Promise(r=>setTimeout(r,0));
 
 function loadEngine(){return new Promise((res,rej)=>{
@@ -165,7 +184,7 @@ async function analyze(){
     const loss=Math.max(0,w?a-b:b-a);
     const bs=uciSan(fens[i],ev[i].best);
     const ci=bs===m.san||loss<0.5?0:loss<2?1:loss<5?2:loss<10?3:loss<20?4:5;
-    return{san:m.san,w,loss,ci,bs,before:ev[i].sc,after:ev[i+1].sc,txt:null};
+    return{san:m.san,w,loss,ci,bs,i,piece:m.piece,cap:m.captured,before:ev[i].sc,after:ev[i+1].sc,txt:null};
   });
   D={fens,mv:rows,ev};
   rows.forEach(r=>r.txt=basic(r));
@@ -178,7 +197,26 @@ async function analyze(){
   await aiFin();
 }
 
-const basic=r=>r.ci===0?"Mossa ottima, in linea con il motore.":r.ci<3?"Mossa solida.":"Non è la mossa migliore"+(r.bs?": era meglio "+r.bs+".":".");
+const PN={p:"il pedone",n:"il cavallo",b:"l’alfiere",r:"la torre",q:"la donna",k:"il re"};
+function basic(r){
+  const k=r.w?1:-1,a=r.before*k,b=r.after*k;
+  const ev=x=>Math.abs(x)>=9000?(x>0?"un matto forzato":"un matto subito"):x>=300?"un vantaggio decisivo":x>=120?"un buon vantaggio":x>=40?"un leggero vantaggio":x>-40?"una posizione equilibrata":x>-120?"un leggero svantaggio":x>-300?"uno svantaggio netto":"una posizione quasi persa";
+  const bt=r.bs?(r.bs.includes("#")?" (matto)":r.bs.includes("x")?" (cattura)":r.bs.includes("+")?" (scacco)":""):"";
+  const best=r.bs?"Era meglio "+r.bs+bt+".":"";
+  if(r.san.endsWith("#"))return "Scacco matto! La partita finisce qui.";
+  if(r.ci===0){
+    if(r.san.startsWith("O-O"))return "Arrocco: il re va al sicuro e la torre entra in gioco.";
+    if(r.cap)return "Ottima presa: conquisti "+PN[r.cap]+" e mantieni "+ev(b)+".";
+    if(r.san.includes("+"))return "Scacco preciso, in linea con il motore. Ora hai "+ev(b)+".";
+    if(r.i<12)return "Sviluppo preciso: è la mossa che il motore consiglia in apertura.";
+    return "Mossa migliore: mantieni "+ev(b)+".";
+  }
+  if(r.ci<=2)return r.ci===1?"Ottima mossa, quasi la migliore. Posizione: "+ev(b)+".":"Mossa solida, senza danni. Posizione: "+ev(b)+".";
+  const miss=r.bs&&r.bs.includes("#")?" Hai lasciato sfuggire un matto.":r.bs&&r.bs.includes("x")?" Hai perso l’occasione di catturare.":"";
+  if(r.ci===3)return "Imprecisione: passi da "+ev(a)+" a "+ev(b)+"."+miss+" "+best;
+  if(r.ci===4)return "Errore: passi da "+ev(a)+" a "+ev(b)+"."+(r.cap?" La cattura non conviene.":"")+miss+" "+best;
+  return "Svista grave: passi da "+ev(a)+" a "+ev(b)+"."+miss+" "+best;
+}
 
 async function aiComments(){
   let sample=null;
@@ -256,14 +294,14 @@ function renderFin(){
   f0.innerHTML='<h2>Valutazione finale</h2><div class="tg"><button data-c="1" class="'+(me?"on":"")+'">Ho giocato Bianco</button><button data-c="0" class="'+(me?"":"on")+'">Ho giocato Nero</button></div>'+
    '<div class="vt"><b>'+s.voto+'</b><span>accuratezza '+s.acc+'%</span></div>'+
    '<div class="sg"><div>Migliori<b class="c0">'+s.n[0]+'</b></div><div>Imprecisioni<b class="c3">'+s.n[3]+'</b></div><div>Errori<b class="c4">'+s.n[4]+'</b></div><div>Sviste<b class="c5">'+s.n[5]+'</b></div><div>Ottime/Buone<b>'+(s.n[1]+s.n[2])+'</b></div><div>Punto debole<b>'+(Math.max(...s.ph)?PH[s.ph.indexOf(Math.max(...s.ph))]:"Nessuno")+'</b></div></div>'+
-   '<h3>Dove migliorare</h3><div id="fa"></div><h3>Puzzle consigliati su Lichess (gratis)</h3><div class="pz"></div><div class="nt">Puzzle gratuiti, senza account. Se hai l’app Lichess installata, il link si apre direttamente lì; altrimenti nel browser.</div>';
+   '<h3>Dove migliorare</h3><div id="fa"></div><h3>Puzzle consigliati su Lichess (gratis)</h3><div class="pz"></div><div class="nt">Puzzle gratuiti, senza account. Il pulsante apre direttamente l’app Lichess se è installata; altrimenti il sito.</div>';
   const fa=$("#fa");
   if(f&&f.riassunto){const p=document.createElement("p");p.style.margin="0 0 4px";p.textContent=f.riassunto;fa.append(p);
     if(Array.isArray(f.consigli)){const u=document.createElement("ul");f.consigli.forEach(c=>{const l=document.createElement("li");l.textContent=c;u.append(l)});fa.append(u)}}
   else fa.textContent=s.bad.length?("Le perdite maggiori sono arrivate in "+PH[s.ph.indexOf(Math.max(...s.ph))]+". Rivedi le mosse segnate con ?! ? ?? e cerca la causa: pezzo lasciato in presa, tattica non vista o vantaggio non sfruttato."):"Partita molto precisa, non emergono errori rilevanti.";
   const pz=f0.querySelector(".pz");
-  keys.filter(k=>TH[k]).forEach(k=>{const a=document.createElement("a");a.href="https://lichess.org/training/"+k;a.target="_blank";a.rel="noopener noreferrer";a.textContent=TH[k];pz.append(a)});
-  const all=document.createElement("a");all.href="https://lichess.org/training";all.target="_blank";all.rel="noopener noreferrer";all.textContent="Tutti i puzzle";all.style.background="var(--bg)";all.style.color="var(--fg)";pz.append(all);
+  keys.filter(k=>TH[k]).forEach(k=>{const a=document.createElement("a");a.href=lh("/training/"+k);a.rel="noopener noreferrer";a.textContent=TH[k];pz.append(a)});
+  const all=document.createElement("a");all.href=lh("/training");all.rel="noopener noreferrer";all.textContent="Tutti i puzzle";all.style.background="var(--bg)";all.style.color="var(--fg)";pz.append(all);
   f0.querySelectorAll(".tg button").forEach(b=>b.onclick=()=>{me=b.dataset.c==="1";renderFin()});
 }
 async function aiFin(){
