@@ -1,0 +1,28 @@
+REVISIONE SCACCHI AI - come metterla online e installarla
+
+1) Mettila online (gratis con GitHub Pages)
+   - Crea un account su github.com e un nuovo repository pubblico (es. "scacchi-ai")
+   - Carica TUTTI i file di questa cartella nel repository (Add file > Upload files)
+   - Vai su Settings > Pages > Branch: main / root > Save
+   - Dopo un minuto l'app sarà su https://TUONOME.github.io/scacchi-ai/
+   (Alternative gratuite: Netlify Drop, Cloudflare Pages.)
+
+2) Installala sul telefono
+   - iPhone: apri il link in Safari > Condividi > Aggiungi alla schermata Home
+   - Android: apri il link in Chrome > menu ⋮ > Installa app
+
+3) Commenti AI (facoltativo)
+   - Apri l'app > Impostazioni AI > incolla la tua chiave API Anthropic (console.anthropic.com)
+   - La chiave resta salvata solo sul tuo dispositivo. Costo: pochi centesimi a partita.
+   - Senza chiave l'app funziona comunque con Stockfish e commenti base.
+
+4) Importa le partite
+   - Nell'app scegli chess.com o Lichess, scrivi il tuo username e tocca "Carica ultime partite"
+   - Tocca una partita per analizzarla (l'app imposta da sola il tuo colore)
+
+5) Puzzle
+   - I pulsanti puzzle aprono Lichess: se hai l'app installata, si apre direttamente nell'app.
+   - Su Android, se si apre il browser: Impostazioni > App > Lichess > Apri link supportati.
+
+Dopo la prima apertura l'analisi funziona anche offline. I commenti AI richiedono internet.
+Puzzle consigliati: link a Lichess (gratis).

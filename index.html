@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Revisione Scacchi AI</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f6f4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scacchi AI">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<script src="chess.js"></script>
+<style>
+:root{--bg:#faf9f6;--fg:#1c1b19;--card:#efede7;--mut:#6b675f;--lt:#eeeed2;--dk:#769656;--acc:#2f6f4f;--hl:rgba(246,226,80,.55);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1a18;--fg:#eceae4;--card:#2a2926;--mut:#a09b90;--acc:#7fc79c}}
+:root[data-theme="dark"]{--bg:#1b1a18;--fg:#eceae4;--card:#2a2926;--mut:#a09b90;--acc:#7fc79c}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:480px;margin:0 auto;padding:14px 12px 28px}
+h1{font-size:20px;margin:4px 0 12px}
+textarea{width:100%;height:96px;border-radius:12px;border:1px solid var(--mut);background:var(--card);color:var(--fg);padding:10px;font:13px ui-monospace,monospace;resize:vertical}
+.row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}
+button{border:0;border-radius:10px;padding:10px 14px;font:600 14px inherit;background:var(--card);color:var(--fg)}
+button.p{background:var(--acc);color:#fff}
+#st{color:var(--mut);font-size:13px;min-height:18px}
+#rv{display:none}
+.bw{display:flex;gap:6px}
+#eb{width:14px;border-radius:6px;overflow:hidden;background:#222;display:flex;flex-direction:column;justify-content:flex-end}
+#ef{background:#f2f2f2;height:50%;transition:height .3s}
+#bd{flex:1;min-width:0;aspect-ratio:1/1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));border-radius:8px;overflow:hidden}
+#bd{box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#bd div{position:relative;min-width:0;min-height:0;overflow:hidden;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:min(10vw,44px);line-height:1;font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Noto Sans Symbols","DejaVu Sans","Apple Symbols",serif}
+#bd small{position:absolute;font:700 9px system-ui,sans-serif;-webkit-text-stroke:0;text-shadow:none}
+#bd .rk{left:3px;top:2px}#bd .fl{right:3px;bottom:2px}
+.l small{color:var(--dk)}.d small{color:var(--lt)}
+.l{background:var(--lt)}.d{background:var(--dk)}.h{box-shadow:inset 0 0 0 100px var(--hl)}
+.w{color:#fff;-webkit-text-stroke:1.3px #1a1a1a;paint-order:stroke fill;text-shadow:0 2px 3px rgba(0,0,0,.4)}.k{color:#151515;-webkit-text-stroke:.7px #e4e4e4;paint-order:stroke fill;text-shadow:0 2px 3px rgba(0,0,0,.35)}
+#cm{background:var(--card);border-radius:12px;padding:12px;margin:10px 0;min-height:86px}
+#cm b{display:block;margin-bottom:2px}
+.nav{display:flex;gap:8px}.nav button{flex:1;font-size:18px}
+#ml{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}
+#ml span{padding:4px 7px;border-radius:8px;background:var(--card);font-size:13px;cursor:pointer;border:2px solid transparent}
+#ml span.on{border-color:var(--acc)}
+#ml i{font-style:normal;color:var(--mut);margin-right:2px}
+.acc{display:flex;gap:8px;margin-top:6px}.acc div{flex:1;background:var(--card);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--mut)}.acc b{display:block;font-size:20px;color:var(--fg)}
+.c0{color:#2e9e4f}.c1{color:#4aa86a}.c2{color:#7a8f3a}.c3{color:#c9a100}.c4{color:#e07b00}.c5{color:#d93a2f}
+#fin{background:var(--card);border-radius:16px;padding:14px;margin-top:14px}
+#fin h2{font-size:17px;margin:0 0 8px}
+.tg{display:flex;gap:6px;margin-bottom:10px}.tg button{flex:1;background:var(--bg)}.tg button.on{background:var(--acc);color:#fff}
+.vt{display:flex;align-items:baseline;gap:10px}.vt b{font-size:28px}.vt span{color:var(--mut)}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.sg div{background:var(--bg);border-radius:10px;padding:6px 8px;font-size:12px;color:var(--mut)}.sg b{display:block;font-size:16px;color:var(--fg)}
+#fin h3{font-size:14px;margin:12px 0 4px}
+#fin ul{margin:4px 0;padding-left:18px}#fin li{margin:3px 0}
+.pz{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.pz a{background:var(--acc);color:#fff;text-decoration:none;padding:7px 11px;border-radius:999px;font-size:13px;font-weight:600}
+.nt{font-size:12px;color:var(--mut);margin-top:8px}
+#imp{background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+#imp .row{margin:8px 0}
+#imp select,#imp input{padding:10px;border-radius:10px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif}
+#imp input{flex:1;min-width:0}
+#gl{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.gm{display:flex;align-items:center;gap:8px;text-align:left;width:100%;background:var(--bg);font-weight:500}
+.gm em{font-style:normal;font-weight:700;min-width:52px}.gm small{margin-left:auto;color:var(--mut);font-size:12px}
+#cfg{background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+#cfg summary{font-weight:600;cursor:pointer}
+#cfg input{width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);font:14px system-ui,sans-serif}
+</style>
+</head>
+<body>
+<main>
+<h1>♞ Revisione Scacchi AI</h1>
+<details id="cfg"><summary>⚙️ Impostazioni AI</summary>
+<p class="nt">Per i commenti e i consigli AI serve una chiave API Anthropic (console.anthropic.com). Resta salvata solo su questo dispositivo. Senza chiave l’app funziona con analisi Stockfish e commenti base.</p>
+<input id="key" type="password" placeholder="Chiave API (sk-ant-…)" autocomplete="off">
+<input id="mdl" type="text" placeholder="Modello" autocomplete="off">
+<div class="row"><button id="sv">Salva</button></div>
+</details>
+<div id="imp"><b>📥 Importa le tue partite</b>
+<div class="row"><select id="isrc"><option value="chesscom">chess.com</option><option value="lichess">Lichess</option></select><input id="iu" type="text" placeholder="Username" autocomplete="off" autocapitalize="off"></div>
+<button class="p" id="ig">Carica ultime partite</button><div id="gl"></div></div>
+<textarea id="pgn" placeholder="…oppure incolla qui il PGN della partita"></textarea>
+<div class="row"><button class="p" id="go">Analizza partita</button><button id="ex">Esempio</button></div>
+<div id="st"></div>
+<section id="rv">
+<div class="bw"><div id="eb"><div id="ef"></div></div><div id="bd"></div></div>
+<div id="cm"></div>
+<div class="nav"><button data-a="0">⏮</button><button data-a="-1">◀</button><button data-a="1">▶</button><button data-a="9">⏭</button></div>
+<div id="ml"></div>
+<div class="acc"><div>Bianco<b id="aw">–</b></div><div>Nero<b id="ab">–</b></div></div>
+<div id="fin"></div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const CLS=[["Migliore","★"],["Ottima","!"],["Buona","✓"],["Imprecisione","?!"],["Errore","?"],["Svista","??"]];
+const PC={p:"♟\uFE0E",n:"♞\uFE0E",b:"♝\uFE0E",r:"♜\uFE0E",q:"♛\uFE0E",k:"♚\uFE0E"};
+const EX='1.e4 e5 2.Nf3 d6 3.d4 Bg4 4.dxe5 Bxf3 5.Qxf3 dxe5 6.Bc4 Nf6 7.Qb3 Qe7 8.Nc3 c6 9.Bg5 b5 10.Nxb5 cxb5 11.Bxb5+ Nbd7 12.O-O-O Rd8 13.Rxd7 Rxd7 14.Rd1 Qe6 15.Bxd7+ Nxd7 16.Qb8+ Nxb8 17.Rd8# 1-0';
+let eng,D={fens:[],mv:[],ev:[]},cur=0;
+$("#ex").onclick=()=>{$("#pgn").value=EX};
+const st=t=>$("#st").textContent=t;
+
+const LS={g:k=>{try{return localStorage.getItem(k)||""}catch(e){return ""}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+$("#key").value=LS.g("sc_key");$("#mdl").value=LS.g("sc_mdl")||"claude-haiku-5-5";
+$("#sv").onclick=()=>{LS.s("sc_key",$("#key").value.trim());LS.s("sc_mdl",$("#mdl").value.trim()||"claude-haiku-5-5");st("Impostazioni salvate.");$("#cfg").open=false};
+function getSample(){
+  const key=LS.g("sc_key");if(!key)return null;
+  return{json:async prompt=>{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:LS.g("sc_mdl")||"claude-haiku-5-5",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
+    if(!r.ok){const e=new Error("API "+r.status);if(r.status===401||r.status===403)e.code="not_granted";st("Errore API ("+r.status+"): controlla chiave e modello.");throw e}
+    const d=await r.json();
+    const t=(d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```json|```/g,"").trim();
+    return JSON.parse(t);
+  }};
+}
+const tick=()=>new Promise(r=>setTimeout(r,0));
+
+function loadEngine(){return new Promise((res,rej)=>{
+  try{
+    eng=new Worker("stockfish.js");
+    eng.onerror=()=>rej(new Error("motore non caricato"));
+    eng.onmessage=e=>{if(e.data==="readyok")res()};
+    eng.postMessage("uci");eng.postMessage("isready");
+    setTimeout(()=>rej(new Error("timeout motore")),25000);
+  }catch(e){rej(e)}
+});}
+
+function evalFen(fen){return new Promise(res=>{
+  let sc=0;
+  eng.onmessage=e=>{
+    const l=typeof e==="string"?e:e.data;if(typeof l!=="string")return;
+    const m=l.match(/score (cp|mate) (-?\d+)/);
+    if(m&&l.includes(" pv "))sc=m[1]==="cp"?+m[2]:(+m[2]>0?1:-1)*(10000-Math.abs(+m[2]));
+    if(l.startsWith("bestmove"))res({sc:fen.split(" ")[1]==="w"?sc:-sc,best:l.split(" ")[1]});
+  };
+  eng.postMessage("position fen "+fen);eng.postMessage("go depth 11");
+});}
+
+const wp=cp=>50+50*(2/(1+Math.exp(-0.00368208*cp))-1);
+const pawns=cp=>Math.abs(cp)>=9000?(cp>0?"+M":"-M"):(cp/100>=0?"+":"")+(cp/100).toFixed(1);
+function uciSan(fen,u){
+  if(!u||u==="(none)")return"";
+  const c=new Chess(fen),m=c.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});
+  return m?m.san:"";
+}
+
+async function analyze(){
+  const g=new Chess();
+  if(!g.load_pgn($("#pgn").value.trim())){st("PGN non valido. Controlla il testo incollato.");return}
+  const mv=g.history({verbose:true}),c=new Chess(),fens=[c.fen()];
+  mv.forEach(m=>{c.move(m.san);fens.push(c.fen())});
+  $("#go").disabled=true;
+  try{st("Carico Stockfish…");if(!eng)await loadEngine()}catch(e){st("Errore: "+e.message);$("#go").disabled=false;return}
+  const ev=[];
+  for(let i=0;i<fens.length;i++){
+    st("Analisi posizione "+(i+1)+"/"+fens.length+"…");await tick();
+    const k=new Chess(fens[i]);
+    if(k.in_checkmate())ev.push({sc:k.turn()==="w"?-10000:10000,best:""});
+    else if(k.game_over())ev.push({sc:0,best:""});
+    else ev.push(await evalFen(fens[i]));
+  }
+  const rows=mv.map((m,i)=>{
+    const w=m.color==="w",a=wp(ev[i].sc),b=wp(ev[i+1].sc);
+    const loss=Math.max(0,w?a-b:b-a);
+    const bs=uciSan(fens[i],ev[i].best);
+    const ci=bs===m.san||loss<0.5?0:loss<2?1:loss<5?2:loss<10?3:loss<20?4:5;
+    return{san:m.san,w,loss,ci,bs,before:ev[i].sc,after:ev[i+1].sc,txt:null};
+  });
+  D={fens,mv:rows,ev};
+  rows.forEach(r=>r.txt=basic(r));
+  const accOf=col=>{const l=rows.filter(r=>r.w===col);return l.length?Math.round(l.reduce((s,r)=>s+Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*r.loss)-3.1669)),0)/l.length)+"%":"–"};
+  $("#aw").textContent=accOf(true);$("#ab").textContent=accOf(false);
+  $("#rv").style.display="block";buildList();show(0);renderFin();
+  st("Analisi completata. Genero i commenti AI…");
+  $("#go").disabled=false;
+  await aiComments();
+  await aiFin();
+}
+
+const basic=r=>r.ci===0?"Mossa ottima, in linea con il motore.":r.ci<3?"Mossa solida.":"Non è la mossa migliore"+(r.bs?": era meglio "+r.bs+".":".");
+
+async function aiComments(){
+  let sample=null;
+  sample=getSample();
+  if(!sample){st("Commenti base: inserisci la chiave API nelle impostazioni per quelli AI.");return}
+  const rows=D.mv;
+  for(let s=0;s<rows.length;s+=20){
+    const part=rows.slice(s,s+20).map((r,j)=>({n:s+j+1,lato:r.w?"Bianco":"Nero",mossa:r.san,giudizio:CLS[r.ci][0],migliore:r.bs,val_prima:pawns(r.before),val_dopo:pawns(r.after)}));
+    try{
+      const out=await sample.json("Sei un allenatore di scacchi. Per ogni mossa scrivi UNA frase breve (max 25 parole) in italiano che spieghi perché è "+"buona o sbagliata, con idea tattica o strategica; se non è la migliore cita la mossa migliore e perché. Le valutazioni sono in pedoni dal punto di vista del Bianco. Rispondi SOLO con un array JSON di stringhe, della stessa lunghezza e ordine dell’input.\n"+JSON.stringify(part));
+      if(Array.isArray(out))out.forEach((t,j)=>{if(rows[s+j]&&typeof t==="string")rows[s+j].txt=t});
+      show(cur);
+    }catch(e){st("Commenti AI parziali: alcuni restano in versione base.");if(e&&e.code==="not_granted")return}
+  }
+  st("Commenti AI pronti.");
+}
+
+function buildList(){
+  const ml=$("#ml");ml.innerHTML="";
+  D.mv.forEach((r,i)=>{
+    const s=document.createElement("span");s.dataset.i=i+1;
+    s.innerHTML=(r.w?"<i>"+(Math.floor(i/2)+1)+".</i>":"")+r.san+' <b class="c'+r.ci+'">'+(r.ci?CLS[r.ci][1]:"")+"</b>";
+    s.onclick=()=>show(i+1);ml.appendChild(s);
+  });
+}
+
+function show(i){
+  i=Math.max(0,Math.min(D.mv.length,i));cur=i;
+  const c=new Chess(D.fens[i]),bd=$("#bd");bd.innerHTML="";
+  const last=i?(()=>{const t=new Chess(D.fens[i-1]).moves({verbose:true}).find(m=>m.san===D.mv[i-1].san);return t?[t.from,t.to]:[]})():[];
+  c.board().forEach((row,r)=>row.forEach((p,f)=>{
+    const sq="abcdefgh"[f]+(8-r),d=document.createElement("div");
+    d.className=((r+f)%2?"d":"l")+(last.includes(sq)?" h":"");
+    if(p){d.textContent=PC[p.type];d.classList.add(p.color==="w"?"w":"k")}
+    if(f===0){const t=document.createElement("small");t.className="rk";t.textContent=8-r;d.appendChild(t)}
+    if(r===7){const t=document.createElement("small");t.className="fl";t.textContent="abcdefgh"[f];d.appendChild(t)}
+    bd.appendChild(d);
+  }));
+  const sc=D.ev[i].sc;$("#ef").style.height=wp(sc)+"%";
+  const cm=$("#cm");
+  if(!i)cm.innerHTML="<b>Posizione iniziale</b>Usa le frecce o tocca una mossa per rivedere la partita.";
+  else{const r=D.mv[i-1];cm.innerHTML='<b class="c'+r.ci+'">'+r.san+" · "+CLS[r.ci][0]+" ("+pawns(D.ev[i].sc)+")</b>";cm.append(document.createTextNode(r.txt))}
+  document.querySelectorAll("#ml span").forEach(s=>s.classList.toggle("on",+s.dataset.i===i));
+}
+
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
+  const a=+b.dataset.a;show(a===0?0:a===9?D.mv.length:cur+a);
+});
+addEventListener("keydown",e=>{if(!D.mv.length||e.target.tagName==="TEXTAREA")return;
+  if(e.key==="ArrowRight")show(cur+1);if(e.key==="ArrowLeft")show(cur-1)});
+let me=true,FIN={};
+const TH={opening:"Aperture",middlegame:"Mediogioco",endgame:"Finali",hangingPiece:"Pezzi in presa",fork:"Forchetta",pin:"Inchiodatura",skewer:"Infilata",discoveredAttack:"Attacco di scoperta",backRankMate:"Matto ultima traversa",mateIn1:"Matto in 1",mateIn2:"Matto in 2",defensiveMove:"Mosse difensive",advantage:"Sfruttare il vantaggio",trappedPiece:"Pezzo intrappolato",sacrifice:"Sacrificio",exposedKing:"Re esposto"};
+const PH=["Apertura","Mediogioco","Finale"],PK=["opening","middlegame","endgame"];
+const phase=i=>{const p=(D.fens[i].split(" ")[0].match(/[a-z]/gi)||[]).length;return i<16?0:p<=12?2:1};
+function stats(col){
+  const rs=D.mv.map((r,i)=>({...r,i})).filter(r=>r.w===col);
+  const n=[0,0,0,0,0,0];rs.forEach(r=>n[r.ci]++);
+  const ph=[0,0,0];rs.filter(r=>r.ci>=4).forEach(r=>ph[phase(r.i)]++);
+  const bad=rs.filter(r=>r.ci>=3).sort((a,b)=>b.loss-a.loss).slice(0,8);
+  const acc=rs.length?Math.round(rs.reduce((s,r)=>s+Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*r.loss)-3.1669)),0)/rs.length):0;
+  const voto=acc>=90?"Eccellente":acc>=80?"Ottima":acc>=70?"Buona":acc>=60?"Discreta":"Da migliorare";
+  const keys=[];
+  const wi=ph.indexOf(Math.max(...ph));
+  if(Math.max(...ph)>0)keys.push(PK[wi]);
+  if(bad.some(r=>r.bs.includes("x")))keys.push("hangingPiece");
+  if(bad.some(r=>(col?1:-1)*r.before>150))keys.push("advantage");
+  if(bad.some(r=>r.ci===5))keys.push("defensiveMove");
+  if(!keys.includes("fork"))keys.push("fork");
+  return{rs,n,ph,bad,acc,voto,keys:[...new Set(keys)].slice(0,4)};
+}
+function renderFin(){
+  if(!D.mv.length)return;
+  const s=stats(me),f=FIN[me],keys=(f&&f.temi&&f.temi.length?f.temi:s.keys);
+  const f0=$("#fin");
+  f0.innerHTML='<h2>Valutazione finale</h2><div class="tg"><button data-c="1" class="'+(me?"on":"")+'">Ho giocato Bianco</button><button data-c="0" class="'+(me?"":"on")+'">Ho giocato Nero</button></div>'+
+   '<div class="vt"><b>'+s.voto+'</b><span>accuratezza '+s.acc+'%</span></div>'+
+   '<div class="sg"><div>Migliori<b class="c0">'+s.n[0]+'</b></div><div>Imprecisioni<b class="c3">'+s.n[3]+'</b></div><div>Errori<b class="c4">'+s.n[4]+'</b></div><div>Sviste<b class="c5">'+s.n[5]+'</b></div><div>Ottime/Buone<b>'+(s.n[1]+s.n[2])+'</b></div><div>Punto debole<b>'+(Math.max(...s.ph)?PH[s.ph.indexOf(Math.max(...s.ph))]:"Nessuno")+'</b></div></div>'+
+   '<h3>Dove migliorare</h3><div id="fa"></div><h3>Puzzle consigliati su Lichess (gratis)</h3><div class="pz"></div><div class="nt">Puzzle gratuiti, senza account. Se hai l’app Lichess installata, il link si apre direttamente lì; altrimenti nel browser.</div>';
+  const fa=$("#fa");
+  if(f&&f.riassunto){const p=document.createElement("p");p.style.margin="0 0 4px";p.textContent=f.riassunto;fa.append(p);
+    if(Array.isArray(f.consigli)){const u=document.createElement("ul");f.consigli.forEach(c=>{const l=document.createElement("li");l.textContent=c;u.append(l)});fa.append(u)}}
+  else fa.textContent=s.bad.length?("Le perdite maggiori sono arrivate in "+PH[s.ph.indexOf(Math.max(...s.ph))]+". Rivedi le mosse segnate con ?! ? ?? e cerca la causa: pezzo lasciato in presa, tattica non vista o vantaggio non sfruttato."):"Partita molto precisa, non emergono errori rilevanti.";
+  const pz=f0.querySelector(".pz");
+  keys.filter(k=>TH[k]).forEach(k=>{const a=document.createElement("a");a.href="https://lichess.org/training/"+k;a.target="_blank";a.rel="noopener noreferrer";a.textContent=TH[k];pz.append(a)});
+  const all=document.createElement("a");all.href="https://lichess.org/training";all.target="_blank";all.rel="noopener noreferrer";all.textContent="Tutti i puzzle";all.style.background="var(--bg)";all.style.color="var(--fg)";pz.append(all);
+  f0.querySelectorAll(".tg button").forEach(b=>b.onclick=()=>{me=b.dataset.c==="1";renderFin()});
+}
+async function aiFin(){
+  let sample=getSample();
+  if(!sample)return;
+  for(const col of [true,false]){
+    const s=stats(col);
+    const data={lato:col?"Bianco":"Nero",accuratezza:s.acc,giudizi:Object.fromEntries(CLS.map((c,i)=>[c[0],s.n[i]])),errori_gravi_per_fase:{Apertura:s.ph[0],Mediogioco:s.ph[1],Finale:s.ph[2]},peggiori:s.bad.map(r=>({n:r.i+1,mossa:r.san,giudizio:CLS[r.ci][0],migliore:r.bs,fase:PH[phase(r.i)]}))};
+    try{
+      const o=await sample.json("Sei un allenatore di scacchi. Dai una valutazione finale in italiano al giocatore descritto e consigli pratici. Rispondi SOLO con un oggetto JSON: {\"riassunto\":\"2 frasi sul livello di gioco e sui temi ricorrenti\",\"consigli\":[\"3 consigli concreti e brevi\"],\"temi\":[\"2-4 chiavi scelte SOLO da questa lista, per i puzzle Lichess\"]}. Chiavi ammesse: "+Object.keys(TH).join(", ")+".\n"+JSON.stringify(data));
+      if(o&&typeof o==="object"){FIN[col]={riassunto:String(o.riassunto||""),consigli:(o.consigli||[]).map(String).slice(0,4),temi:(o.temi||[]).filter(k=>TH[k]).slice(0,4)};renderFin()}
+    }catch(e){if(e&&e.code==="not_granted")return}
+  }
+  st("Commenti e valutazione finale pronti.");
+}
+
+let GL=[];
+$("#iu").value=LS.g("sc_user");$("#isrc").value=LS.g("sc_src")||"chesscom";
+const DR=["agreed","repetition","stalemate","insufficient","50move","timevsinsufficient"];
+async function jget(u,h){const r=await fetch(u,h?{headers:h}:undefined);if(!r.ok)throw new Error(r.status);return r}
+async function fromChesscom(u){
+  const L=u.toLowerCase(),out=[];
+  const a=await(await jget("https://api.chess.com/pub/player/"+encodeURIComponent(L)+"/games/archives")).json();
+  for(const url of(a.archives||[]).slice(-3).reverse()){
+    const d=await(await jget(url)).json();
+    for(const g of(d.games||[]).slice().reverse()){
+      if(!g.pgn||(g.rules&&g.rules!=="chess"))continue;
+      const w=g.white.username.toLowerCase()===L,m=w?g.white:g.black,o=w?g.black:g.white;
+      out.push({pgn:g.pgn,white:w,op:o.username,res:m.result==="win"?"Vinta":DR.includes(m.result)?"Patta":"Persa",tc:g.time_class,t:g.end_time*1000});
+      if(out.length>=10)return out;
+    }
+  }
+  return out;
+}
+async function fromLichess(u){
+  const L=u.toLowerCase();
+  const r=await jget("https://lichess.org/api/games/user/"+encodeURIComponent(u)+"?max=10&pgnInJson=true",{Accept:"application/x-ndjson"});
+  return(await r.text()).trim().split("\n").filter(Boolean).map(l=>JSON.parse(l)).filter(g=>g.pgn&&g.variant==="standard").map(g=>{
+    const w=((g.players.white.user&&g.players.white.user.name)||"").toLowerCase()===L,o=g.players[w?"black":"white"];
+    const op=o.user?o.user.name:o.aiLevel?"Stockfish "+o.aiLevel:"Anonimo";
+    return{pgn:g.pgn,white:w,op,res:!g.winner?"Patta":((g.winner==="white")===w?"Vinta":"Persa"),tc:g.speed,t:g.createdAt};
+  });
+}
+$("#ig").onclick=async()=>{
+  const u=$("#iu").value.trim(),src=$("#isrc").value;
+  if(!u){st("Inserisci il tuo username.");return}
+  LS.s("sc_user",u);LS.s("sc_src",src);
+  st("Scarico le partite…");const gl=$("#gl");gl.innerHTML="";
+  try{GL=src==="lichess"?await fromLichess(u):await fromChesscom(u)}catch(e){st("Impossibile scaricare le partite: controlla username e connessione.");return}
+  if(!GL.length){st("Nessuna partita trovata.");return}
+  st("Tocca una partita per analizzarla.");
+  GL.forEach(g=>{
+    const b=document.createElement("button");b.className="gm";
+    const r=document.createElement("em");r.textContent=g.res;r.className=g.res==="Vinta"?"c0":g.res==="Persa"?"c5":"c3";
+    const t=document.createElement("span");t.textContent=(g.white?"\u2654":"\u265a")+" vs "+g.op;
+    const d=document.createElement("small");d.textContent=g.tc+" \u00b7 "+new Date(g.t).toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+    b.append(r,t,d);
+    b.onclick=()=>{$("#pgn").value=g.pgn;me=g.white;$("#st").scrollIntoView({behavior:"smooth",block:"center"});analyze()};
+    gl.append(b);
+  });
+};
+$("#go").onclick=analyze;
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
